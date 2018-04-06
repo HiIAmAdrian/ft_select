@@ -6,7 +6,7 @@
 /*   By: adstan <marvin@42.fr>                      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2018/03/01 17:58:10 by adstan            #+#    #+#             */
-/*   Updated: 2018/03/09 19:03:01 by adstan           ###   ########.fr       */
+/*   Updated: 2018/03/26 17:36:35 by adstan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,13 +14,20 @@
 
 void		main_afis(t_dlist *list)
 {
-	long c;
-	struct winsize w;
-	struct winsize z;
+	struct winsize	w;
+	struct winsize	z;
+	long			c;
 
 	ioctl(0, TIOCGWINSZ, &w);
-	printing(list);
-	while(1)
+	calc_rows_cols(list);
+	c = 0;
+	z = w;
+	loop_afis(list, c, w, z);
+}
+
+void		loop_afis(t_dlist *list, int c, struct winsize w, struct winsize z)
+{
+	while (1)
 	{
 		c = 0;
 		ioctl(0, TIOCGWINSZ, &z);
@@ -28,11 +35,11 @@ void		main_afis(t_dlist *list)
 		{
 			w = z;
 			tputs(tgetstr("cl", NULL), 1, &ft_printnbr);
-			printing(list);
+			calc_rows_cols(list);
 		}
 		read(0, &c, 8);
-		if (c == ENTER_KEY || c == UP_KEY || c == DOWN_KEY || c == LEFT_KEY
-			|| c == RIGHT_KEY || c == ESC_KEY || c == BKP_KEY || c == DEL_KEY || c == SPACE_KEY)
+		if (c == ENTER_KEY || c == UP_KEY || c == DOWN_KEY || c == LEFT_KEY ||
+c == RIGHT_KEY || c == ESC_KEY || c == BKP_KEY || c == DEL_KEY || c == SPA_KEY)
 		{
 			if ((take_actions(c)))
 			{
@@ -42,31 +49,9 @@ void		main_afis(t_dlist *list)
 			if (list->last == 2)
 				list = list->next;
 			tputs(tgetstr("cl", NULL), 1, &ft_printnbr);
-//			ft_putnbr_fd(g_term.argc, 0);
-			printing(list);
+			calc_rows_cols(list);
 		}
 	}
-}
-
-
-int			get_max(int len, int what)
-{
-	struct winsize w;
-
-	ioctl(0, TIOCGWINSZ, &w);
-	if (what == 1)
-		return (w.ws_col / len);
-	else if (what == 2)
-		return (w.ws_row / len);
-	else if (what == 3)
-		return (w.ws_row);
-	else
-		return (w.ws_col);
-}
-
-int		ft_printnbr(int nbr)
-{
-	return (write(STDERR_FILENO, &nbr, 1));
 }
 
 void		ft_print(t_dlist *start)
@@ -76,26 +61,25 @@ void		ft_print(t_dlist *start)
 		ft_putstr_fd("\e[4m", 0);
 	if (start->selected % 2)
 	{
-		ft_putstr_fd("\e[41m", 0);
+		start->ftype == 'b' ? ft_putstr_fd("\e[43m", 0) : (0);
+		start->ftype == 'd' ? ft_putstr_fd("\e[46m", 0) : (0);
+		start->ftype == 'r' ? ft_putstr_fd("\e[41m", 0) : (0);
+		start->ftype == 'l' ? ft_putstr_fd("\e[45m", 0) : (0);
+		start->ftype == 's' ? ft_putstr_fd("\e[42m", 0) : (0);
+		start->ftype == 'c' ? ft_putstr_fd("\e[44m", 0) : (0);
 		ft_putstr_fd("\e[30m", 0);
 	}
 	else
-	{
-		ft_putstr_fd("\e[49m", 0);
-		ft_putstr_fd("\e[31m", 0);
-	}
+		ft_print2(start);
 	ft_putstr_fd(ft_strsub(start->name, 1, ft_strlen(start->name) - 2), 0);
 	ft_putstr_fd("\e[0m", 0);
 	ft_putchar_fd(start->name[ft_strlen(start->name) - 1], 0);
 }
 
-void		printing(t_dlist *start)
+void		calc_rows_cols(t_dlist *start)
 {
 	int		cols;
 	int		rows;
-	int		count = 1;
-	int		i;
-	int		j;
 
 	cols = get_max(ft_strlen(start->name), 1);
 	if (!cols)
@@ -103,9 +87,19 @@ void		printing(t_dlist *start)
 	rows = g_term.argc / cols;
 	if (g_term.argc % cols)
 		rows++;
-	i = -1;
-	if (rows > get_max(1,3))
+	if (rows > get_max(1, 3))
 		return ;
+	printing(start, rows, cols);
+}
+
+void		printing(t_dlist *start, int rows, int cols)
+{
+	int i;
+	int j;
+	int count;
+
+	i = -1;
+	count = 1;
 	while (++i <= rows && count)
 	{
 		j = -1;
